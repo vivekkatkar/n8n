@@ -1,0 +1,15 @@
+{
+  "name": "worker",
+  "module": "index.js",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "bun --watch index.js",
+    "start": "bun run index.js"
+  },
+  "dependencies": {
+    "ccxt": "^4.5.17",
+    "commons": "*",
+    "db": "*"
+  }
+}

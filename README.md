@@ -1,159 +1,112 @@
-# Turborepo starter
+# Trading Bot Monorepo
 
-This Turborepo starter is maintained by the Turborepo core team.
+This workspace contains:
 
-## Using this example
+- Frontend: React + Vite workflow builder
+- Backend: Express API for auth, workflows, and credentials
+- Database: MongoDB (Atlas or local) via Mongoose models in `packages/db`
 
-Run the following command:
+## 1. Install Dependencies
 
-```sh
-npx create-turbo@latest
+```bash
+bun install
 ```
 
-## What's inside?
+## 2. Configure Environment
 
-This Turborepo includes the following packages/apps:
+Create `apps/backend/.env`:
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```env
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>/?appName=<app>
+MONGODB_DB=trading-bot
+JWT_SECRET=change-me
+CREDENTIAL_ENCRYPTION_KEY=replace-with-long-random-secret
+PORT=4000
 ```
 
-Without global `turbo`, use your package manager:
+Create `apps/frontend/.env` (optional; defaults to `http://localhost:4000`):
 
-```sh
-cd my-turborepo
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+```env
+VITE_API_URL=http://localhost:4000
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## 3. Atlas Access (Required for Atlas)
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+If you use MongoDB Atlas, whitelist your IP in Atlas:
 
-```sh
-turbo build --filter=docs
+- Atlas Dashboard -> Network Access -> Add IP Address
+- Add your current IP or `0.0.0.0/0` for development only
+
+Without this, backend startup fails with `MongooseServerSelectionError`.
+
+## 4. Run Backend
+
+```bash
+cd apps/backend
+bun run start
 ```
 
-Without global `turbo`:
+## 5. Run Frontend
 
-```sh
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+```bash
+cd apps/frontend
+bun run dev
 ```
 
-### Develop
+Frontend URL: `http://localhost:5173`
+Backend URL: `http://localhost:4010` (current local `.env`) or configured `PORT`
 
-To develop all apps and packages, run the following command:
+## 6. Run Worker
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
+```bash
+cd apps/worker
+bun run start
 ```
 
-Without global `turbo`, use your package manager:
+Worker consumes queued executions from MongoDB and performs trigger/action execution.
 
-```sh
-cd my-turborepo
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+Recommended `apps/worker/.env`:
+
+```env
+MONGODB_URI=mongodb+srv://<username>:<password>@<cluster>/?appName=<app>
+MONGODB_DB=trading-bot
+WORKER_POLL_INTERVAL_MS=3000
+TRADING_MODE=paper
+CREDENTIAL_ENCRYPTION_KEY=replace-with-same-value-as-backend
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## 7. End-to-End Flow
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+1. Open frontend and sign up/sign in.
+2. Add exchange credentials in the left control panel.
+3. Build trigger/action workflow graph.
+4. Save workflow to backend -> persisted in MongoDB.
+5. Load previously saved workflows from backend.
+6. Run workflow from dashboard; worker consumes queued execution and updates logs/status.
 
-```sh
-turbo dev --filter=web
-```
+## Exchange Credentials and Real Execution
 
-Without global `turbo`:
+- Each action requires exchange-specific credentials (exposed by `GET /nodes`).
+- Backend validates that action node credential exchange matches action type.
+- Worker can run in:
+	- `paper`: validate + log orders without sending to exchange
+	- `live`: submit market orders via exchange adapters
+- Keep `TRADING_MODE=paper` until you verify credentials and risk controls.
 
-```sh
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
+## API Summary
 
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+- `POST /signup`
+- `POST /signin`
+- `GET /me`
+- `GET /nodes`
+- `POST /workflow`
+- `PUT /workflow`
+- `GET /workflow/:workflowId`
+- `GET /workflows`
+- `GET /workflow/executions/:workflowId`
+- `POST /workflow/:workflowId/run`
+- `GET /executions/:executionId`
+- `POST /credentials`
+- `GET /credentials`
+- `DELETE /credentials/:credentialId`
+- `GET /health`
